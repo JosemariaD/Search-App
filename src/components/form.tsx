@@ -1,62 +1,94 @@
-import React from "react";
-import { Form, Select, Input, Button, Checkbox } from "antd";
+import React, { FC } from "react";
+import usePlacesAutocomplete, {
+  getGeocode,
+  getLatLng,
+} from "use-places-autocomplete";
+import { Form, Select, Input, Button } from "antd";
 import { Typography } from "antd";
-import { Store } from "antd/lib/form/interface";
 
 const { Title } = Typography;
 const { Option } = Select;
-interface FormComponentProps {
-  username: string;
-  password: string | number;
-  onFinish: (values: Store) => void;
-}
-const layout = {
-  labelCol: { span: 8 },
-  wrapperCol: { span: 16 },
-};
-const tailLayout = {
-  wrapperCol: { offset: 8, span: 16 },
-};
 
-const FormComponent: React.FC<FormComponentProps> = () => {
-  const onFinish = (values: any) => {
-    console.log("Success:", values);
+const FormComponent: FC = () => {
+  const {
+    ready,
+    value,
+    suggestions: { status, data },
+    setValue,
+    clearSuggestions,
+  } = usePlacesAutocomplete({
+    requestOptions: {
+      /* Define search scope here */
+    },
+    debounce: 200,
+  });
+  const handleInput = (value: any) => {
+    // Update the keyword of the input element
+    setValue(value);
   };
+  const handleSelect = (description: any) => {
+    // When user selects a place, we can replace the keyword without request data from API
+    // by setting the second parameter as "false"
+    setValue(description, false);
+    clearSuggestions();
+
+    // Get latitude and longitude via utility functions
+    getGeocode({ address: description })
+      .then((results) => getLatLng(results[0]))
+      .then(({ lat, lng }) => {
+        console.log(" Coordinates: ", { lat, lng });
+      })
+      .catch((error) => {
+        console.log(" Error: ", error);
+      });
+  };
+  const renderSuggestions = () =>
+    data.map((suggestion) => {
+      const {
+        id,
+        structured_formatting: { main_text, secondary_text },
+      } = suggestion;
+
+      return (
+        <li key={id} onClick={() => handleSelect(suggestion)}>
+          <strong>{main_text}</strong> <small>{secondary_text}</small>
+        </li>
+      );
+    });
 
   return (
     <div>
-      <Form
-        {...layout}
-        name="basic"
-        initialValues={{ remember: true }}
-        onFinish={onFinish}
-      >
+      <Form name="control-hooks" initialValues={{ remember: true }}>
+        <Title level={4}>SEARCH FOR HOSPITALS</Title>
+        <Form.Item name="Distance" label="Gender" rules={[{ required: true }]}>
+          <Select
+            placeholder="Select a option and change input text above"
+            allowClear
+          >
+            <Option value="3000">3km</Option>
+            <Option value="10000">10km</Option>
+            <Option value="20000">20km</Option>
+          </Select>
+        </Form.Item>
         <Form.Item
-          label="Username"
-          name="username"
-          rules={[{ required: true, message: "Please input your username!" }]}
+          label="Search"
+          name="Search"
+          rules={[{ required: true, message: "This field is required" }]}
         >
-          <Input />
+          <Input
+            onChange={handleInput}
+            value={value}
+            disabled={!ready}
+            allowClear
+          />
         </Form.Item>
-
-        <Form.Item
-          label="Password"
-          name="password"
-          rules={[{ required: true, message: "Please input your password!" }]}
-        >
-          <Input.Password />
-        </Form.Item>
-
-        <Form.Item {...tailLayout} name="remember" valuePropName="checked">
-          <Checkbox>Remember me</Checkbox>
-        </Form.Item>
-
-        <Form.Item {...tailLayout}>
+        <Form.Item>
           <Button type="primary" htmlType="submit">
             Submit
           </Button>
         </Form.Item>
       </Form>
+      {status === "OK" && <ul>{renderSuggestions()}</ul>}
     </div>
   );
 };
