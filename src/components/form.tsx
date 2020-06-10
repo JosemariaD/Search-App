@@ -60,7 +60,11 @@ const FormComponent: FC = () => {
     <div>
       <Form name="control-hooks" initialValues={{ remember: true }}>
         <Title level={4}>SEARCH FOR HOSPITALS</Title>
-        <Form.Item name="Distance" label="Gender" rules={[{ required: true }]}>
+        <Form.Item
+          name="Distance"
+          label="Distance"
+          rules={[{ required: true }]}
+        >
           <Select
             placeholder="Select a option and change input text above"
             allowClear
